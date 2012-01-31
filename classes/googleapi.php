@@ -24,6 +24,9 @@ abstract class GoogleAPI {
 	protected $client_id = null;
 	protected $client_secret = null;	
 	
+	/* holds a callback which is called when access_token gets updated by refresh_token() */
+	protected $update_token = null;
+	
 	protected static $instance = null;
 	
 	public static function forge(array $config = array())
@@ -38,6 +41,11 @@ abstract class GoogleAPI {
 		if (isset($config['client']))
 		{
 			static::$instance->set_client($config['client']);
+		}
+		
+		if (isset($config['update_token']))
+		{
+			static::$instance->set_update_token($config['update_token']);
 		}
 		return static::$instance;
 	}
@@ -66,6 +74,11 @@ abstract class GoogleAPI {
 		return $this;
 	}
 	
+	public function get_access_token()
+	{
+		return $this->access_token;
+	}
+	
 	public function set_refresh_token($token)
 	{
 		$this->refresh_token = $token;
@@ -76,6 +89,11 @@ abstract class GoogleAPI {
 	{
 		$this->expires = $expires;
 		return $this;
+	}
+	
+	public function get_expires()
+	{
+		return $this->expires;
 	}
 	
 	public function set_client(array $config)
@@ -104,6 +122,12 @@ abstract class GoogleAPI {
 		$this->client_secret = $key;
 		return $this;
 	}
+
+	public function set_update_token($callback)
+	{
+		$this->update_token = $callback;
+		return $this;
+	}
 	
 	public function refresh_token($callback = null)
 	{
@@ -115,6 +139,11 @@ abstract class GoogleAPI {
 		if ( ! $this->client_id or ! $this->client_secret)
 		{
 			throw new \FuelException('The client_id and client_secret are required to refresh tokens');
+		}
+		
+		if ( ! is_callable($this->update_token))
+		{
+			\Log::debug('update_token wasn\'t correctly set. If you are calling this directly, please ensure $callback contains the logic to store an updated access_token and expiry. Otherwise you must specify it.');
 		}
 		
 		if ( \Package::load('oauth2') === false)
@@ -131,9 +160,13 @@ abstract class GoogleAPI {
 		$this->expires = $access_token->expires;
 		
 		/*
-		TODO find a way to store the new token, perhaps a callback that's defined in the forge config
-		that gets called here. Observer pattern would probably be the proper way of doing it. 
+		This prompts the user to store the new token 
 		*/
+		//this is called when the 		
+		if (is_callable($this->update_token))
+		{
+			call_user_func_array($this->update_token,array($this));
+		}
 		
 		//this is called when the 		
 		if (is_callable($callback))
@@ -156,7 +189,7 @@ abstract class GoogleAPI {
 	
 	public function call($url, $method = 'get', array $params = array(), $is_refreshed = false)
 	{
-		if ( ! $this->access_token )
+		if ( ! $this->access_token and ! $this->refresh_token)
 		{
 			throw new \FuelException('Please provide your google access token');
 		}
@@ -165,18 +198,19 @@ abstract class GoogleAPI {
 			'driver' => 'curl',
 			'method' => strtolower($method),
 		))->set_header('Authorization', 'Bearer '.$this->access_token);
-		
+		$response = null;
 		try
 		{
 			$response = $curl->execute()->response();
 			
 			/*
 			Use this to help debug refresh_tokens
-			
-			$debug = new \stdClass;
-			$debug->error = new \stdClass;
-			$debug->error->code = 401;
-			throw new \RequestStatusException(json_encode($debug),401);*/
+			if(!$is_refreshed){
+				$debug = new \stdClass;
+				$debug->error = new \stdClass;
+				$debug->error->code = 401;
+				throw new \RequestStatusException(json_encode($debug),401);
+			}*/
 			
 			if (intval($response->status / 100) != 2) 
 			{
@@ -185,8 +219,8 @@ abstract class GoogleAPI {
 		}
 		catch (\RequestStatusException $e)
 		{
-			$response = json_decode($e->getMessage());
-			switch ($response->error->code)
+			$exception = json_decode($e->getMessage());
+			switch ($exception->error->code)
 			{
 				case 401:
 					//is_refreshed stops an unending loop if the token is actually invalid and not just expired

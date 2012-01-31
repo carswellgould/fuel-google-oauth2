@@ -28,6 +28,9 @@ $api = \Google\Analytics::forge(array(
 		'id'		=> $app_client_id,
 		'secret'	=> $app_client_secret,
 	),
+	'update_token' => function($api) {
+		//this *must* contain logic to save and update your user's $access_token
+	},
 ));
 ```
 
