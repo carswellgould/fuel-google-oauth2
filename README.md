@@ -17,14 +17,15 @@ This package follows standard installation rules, which can be found within the 
 
 ## Usage
 
-```$api = \Google\Analytics::forge(array(
+```php
+$api = \Google\Analytics::forge(array(
 	'tokens' => array(
 		'access_token' => $access_token,
 		'refresh_token' => $refresh_token,
 		'expires' => $expires_at,
 	),
 	'client' => array(
-		'id'	=> $app_client_id,
+		'id'		=> $app_client_id,
 		'secret'	=> $app_client_secret,
 	),
 ));
@@ -32,5 +33,7 @@ This package follows standard installation rules, which can be found within the 
 
 ## Future work
 
--Move client id and secret to config file (still allow people to manually set it, config as fallback)
+- Move client id and secret to config file (still allow people to manually set it, config as fallback)
+- Finish implementing Google Analytics
+- Add more APIs
 
