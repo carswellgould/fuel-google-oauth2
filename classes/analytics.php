@@ -79,14 +79,10 @@ class Analytics extends GoogleAPI {
 	 */
 	public function track($web_profile_id = '')
 	{
+		
 		if(empty($web_profile_id))
 		{
-			$web_profile_id = \Config::get('analytics.web_profile_id');
-
-			if(empty($web_profile_id))
-			{
-				throw new \Exception('Please define your Google Analytics web profile id (UA-XXXXX-X) inside of your analytics configuration file.');
-			}
+			throw new \Exception('Please define your Google Analytics web profile id (UA-XXXXX-X) inside of your analytics configuration file.');
 		}
 
 		return(
