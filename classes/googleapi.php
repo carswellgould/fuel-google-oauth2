@@ -170,10 +170,14 @@ abstract class GoogleAPI {
 		{
 			$response = $curl->execute()->response();
 			
+			/*
+			Use this to help debug refresh_tokens
+			
 			$debug = new \stdClass;
 			$debug->error = new \stdClass;
 			$debug->error->code = 401;
-			throw new \RequestStatusException(json_encode($debug),401);
+			throw new \RequestStatusException(json_encode($debug),401);*/
+			
 			if (intval($response->status / 100) != 2) 
 			{
 				throw new \FuelException('There was a problem contacting the Google API ('.$response->status.')');
