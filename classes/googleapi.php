@@ -127,8 +127,7 @@ abstract class GoogleAPI {
 		  'secret' => $this->client_secret,
 		))->access($this->refresh_token, array('grant_type' => 'refresh_token'));
 		
-		print_r($access_token);
-		exit;
+		$this->access_token = $access_token;
 
 		/*
 		TODO find a way to store the new token, perhaps a callback that's defined in the forge config
