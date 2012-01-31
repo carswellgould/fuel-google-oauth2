@@ -11,6 +11,26 @@ Thanks go to [ninjarite/fuel-google](http://github.com/ninjarite/fuel-google) fo
 
 This package requires fuel-packages/fuel-oauth2 in order to refresh access tokens when they expire.
 
-## Usage
+## Installation
 
 This package follows standard installation rules, which can be found within the [FuelPHP Documentation for Packages] (http://fuelphp.com/docs/general/packages.html)
+
+## Usage
+
+```$api = \Google\Analytics::forge(array(
+	'tokens' => array(
+		'access_token' => $access_token,
+		'refresh_token' => $refresh_token,
+		'expires' => $expires_at,
+	),
+	'client' => array(
+		'id'	=> $app_client_id,
+		'secret'	=> $app_client_secret,
+	),
+));
+```
+
+## Future work
+
+-Move client id and secret to config file (still allow people to manually set it, config as fallback)
+
