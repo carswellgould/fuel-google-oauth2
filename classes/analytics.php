@@ -24,8 +24,7 @@ class Analytics extends GoogleAPI {
 					'id' => $item->id,
 					'name' => $item->name,
 					'updated_at' => strtotime($item->updated),
-					'created_at' => strtotime($item->created),
-					
+					'created_at' => strtotime($item->created),					
 				);
 			}			
 		}
