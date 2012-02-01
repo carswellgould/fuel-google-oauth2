@@ -4,17 +4,6 @@ namespace Google;
 
 class Analytics extends GoogleAPI {
 
-	/** stores the range to get data for */
-	protected $date_range = array();
-	
-	public function __construct()
-	{
-		$this->date_range = array(
-			'start' => date('Y-m-d', mktime(0, 0, 0, date('m') , date('d') - 31, date('Y'))),
-			'end' => date('Y-m-d', mktime(0, 0, 0, date('m') , date('d') - 1, date('Y'))),
-		);
-	}
-	
 	/**
 	 * Retrieve the list of accounts according to your Analytics account
 	 *
@@ -135,12 +124,12 @@ class Analytics extends GoogleAPI {
 		
 		$params = $params + array('ids' => $profile_id);
 		
-		$params = array(
+		$params = $params + array(
 			'start-date' => date('Y-m-d', mktime(0, 0, 0, date('m') , date('d') - 31, date('Y'))),
 			'end-date' => date('Y-m-d', mktime(0, 0, 0, date('m') , date('d') - 1, date('Y'))),
 			'metrics' => 'ga:visits',
 			'dimensions' => 'ga:day',
-		) + $params;
+		) ;
 		
 		// make the call to the API
 		$response = $this->get("analytics/v3/data/ga", $params);
