@@ -194,11 +194,19 @@ abstract class GoogleAPI {
 			throw new \FuelException('Please provide your google access token');
 		}
 		
-		$curl = \Request::forge('https://www.googleapis.com/'.$url, array(
+		if (substr($url,0,7) != 'https://' and substr($url,0,6) != 'http://')
+		{
+			$url = 'https://www.googleapis.com/'.$url;
+		}
+		
+		$curl = \Request::forge($url, array(
 			'driver' => 'curl',
 			'method' => strtolower($method),
+			'params' => $params,
 		))->set_header('Authorization', 'Bearer '.$this->access_token);
+				
 		$response = null;
+		
 		try
 		{
 			$response = $curl->execute()->response();
@@ -220,6 +228,15 @@ abstract class GoogleAPI {
 		catch (\RequestStatusException $e)
 		{
 			$exception = json_decode($e->getMessage());
+			
+			//THROW MADNESS
+			
+			if ($exception === null)
+			{
+				//not a json response
+				throw $e;
+			}
+			
 			switch ($exception->error->code)
 			{
 				case 401:
