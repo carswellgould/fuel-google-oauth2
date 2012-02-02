@@ -249,7 +249,7 @@ abstract class GoogleAPI {
 								$api->call($url, $method, $params, true);
 							});
 						}
-						catch (\Exception $refresh_e)
+						catch (\RequestStatusException $refresh_e)
 						{
 							//it failed its second attempt or there was a problem with the second attempt
 							throw $e;
