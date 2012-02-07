@@ -129,7 +129,7 @@ class Analytics extends GoogleAPI {
 			'end-date' => date('Y-m-d', mktime(0, 0, 0, date('m') , date('d') - 1, date('Y'))),
 			'metrics' => 'ga:visits',
 			'dimensions' => 'ga:day',
-		) ;
+		);
 		
 		// make the call to the API
 		$response = $this->get("analytics/v3/data/ga", $params);
@@ -139,6 +139,11 @@ class Analytics extends GoogleAPI {
 		//normalise the results
 		if ($response)
 		{
+			if ( ! isset($response->rows))
+			{
+				return array();
+			}
+			
 			return $response->rows;		
 		}
 		else
