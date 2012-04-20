@@ -2,6 +2,9 @@
 
 namespace Google;
 
+/* This gets thrown if we need to refresh the token within the call() class. */
+class RefreshTokenException extends \FuelException {};
+
 /**
  * Google API class
  *
@@ -155,7 +158,7 @@ abstract class GoogleAPI {
 		  'id' => $this->client_id,
 		  'secret' => $this->client_secret,
 		))->access($this->refresh_token, array('grant_type' => 'refresh_token'));
-		
+
 		$this->access_token = $access_token->access_token;
 		$this->expires = $access_token->expires;
 		
@@ -193,80 +196,96 @@ abstract class GoogleAPI {
 		{
 			throw new \FuelException('Please provide your google access token');
 		}
-		
-		if (substr($url,0,7) != 'https://' and substr($url,0,6) != 'http://')
+
+		if (substr($url,0,8) != 'https://' and substr($url,0,7) != 'http://')
 		{
 			$url = 'https://www.googleapis.com/'.$url;
 		}
-		
-		$curl = \Request::forge($url, array(
-			'driver' => 'curl',
-			'method' => strtolower($method),
-			'params' => $params,
-		))->set_header('Authorization', 'Bearer '.$this->access_token);
-				
-		$response = null;
-		
+
 		try
 		{
-			$response = $curl->execute()->response();
-			
-			/*
-			Use this to help debug refresh_tokens
-			if(!$is_refreshed){
-				$debug = new \stdClass;
-				$debug->error = new \stdClass;
-				$debug->error->code = 401;
-				throw new \RequestStatusException(json_encode($debug),401);
-			}*/
-			
-			if (intval($response->status / 100) != 2) 
+			//if the user supplies the expiry time (as an absolute unix timestamp), see if the token has already expired
+			if ( $this->expires !== false and $this->expires < time() and ! $is_refreshed)
 			{
-				throw new \FuelException('There was a problem contacting the Google API ('.$response->status.')');
+				throw new RefreshTokenException;
 			}
-		}
-		catch (\RequestStatusException $e)
-		{
-			$exception = json_decode($e->getMessage());
+
+			$curl = \Request::forge($url, array(
+				'driver' => 'curl',
+				'method' => strtolower($method),
+				'params' => $params,
+			))->set_header('Authorization', 'Bearer '.$this->access_token);
+					
+			$response = null;
 			
-			//THROW MADNESS
-			
-			if ($exception === null)
+			try
 			{
-				//not a json response
-				throw $e;
+				$response = $curl->execute()->response();
+				
+				
+				//Use this to help debug refresh_tokens
+				/*if(!$is_refreshed){
+					$debug = new \stdClass;
+					$debug->error = new \stdClass;
+					$debug->error->code = 401;
+					throw new \RequestStatusException(json_encode($debug),401);
+				}*/
+				
+				if (intval($response->status / 100) != 2) 
+				{
+					throw new \FuelException('There was a problem contacting the Google API ('.$response->status.')');
+				}
 			}
-			
-			switch ($exception->error->code)
+			catch (\RequestStatusException $e)
 			{
-				case 401:
-					//is_refreshed stops an unending loop if the token is actually invalid and not just expired
-					if ( ! $is_refreshed)
-					{
-						try
+				$exception = json_decode($e->getMessage());
+				
+				//THROW MADNESS
+				
+				if ($exception === null)
+				{
+					//not a json response
+					throw $e;
+				}
+				
+				switch ($exception->error->code)
+				{
+					case 401:
+						//is_refreshed stops an unending loop if the token is actually invalid and not just expired
+						if ( ! $is_refreshed)
 						{
-							$this->refresh_token(function($api) use ($url, $method, $params){
-								$api->call($url, $method, $params, true);
-							});
+							throw new RefreshTokenException;
 						}
-						catch (\RequestStatusException $refresh_e)
+						else
 						{
-							//it failed its second attempt or there was a problem with the second attempt
 							throw $e;
 						}
-					}
-					else
-					{
+						break;
+					default:
 						throw $e;
-					}
-					break;
-				default:
-					throw $e;
+				}
+			}
+		
+			
+		} 
+		catch (RefreshTokenException $e)
+		{
+			try
+			{
+				$this->refresh_token(function($api) use ($url, $method, $params, &$response){
+					$response = $api->call($url, $method, $params, true);
+				});
+				return $response;
+			}
+			catch (\RequestStatusException $refresh_e)
+			{
+				//it failed its second attempt or there was a problem with the second attempt
+				
+				throw $refresh_e;
 			}
 		}
 		
-		return json_decode($response->body);
-		
+		return json_decode($response->body);		
 	}
 
 }
